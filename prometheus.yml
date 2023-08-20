@@ -15,3 +15,9 @@ scrape_configs:
     static_configs:
       - targets:
           - cadvisor:8080
+
+  - job_name: golang_app
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+          - app:8181

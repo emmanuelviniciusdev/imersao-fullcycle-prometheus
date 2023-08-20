@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 var onlineUsersGauge = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -40,6 +41,12 @@ func main() {
 	}()
 
 	certainEndpointHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	anotherCertainEndpointHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -49,8 +56,15 @@ func main() {
 		promhttp.InstrumentHandlerCounter(totalHTTPRequestsCertainEndpointCounterVec, certainEndpointHandlerFunc),
 	)
 
+	anotherCertainEndpointHandler := promhttp.InstrumentHandlerDuration(
+		durationHTTPRequestCertainEndpointHistogramVec.MustCurryWith(
+			prometheus.Labels{"handler": "anotherCertainEndpointHandlerFunc"}),
+		promhttp.InstrumentHandlerCounter(totalHTTPRequestsCertainEndpointCounterVec, anotherCertainEndpointHandlerFunc),
+	)
+
 	http.Handle("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}))
 	http.Handle("/certain-endpoint", certainEndpointHandler)
+	http.Handle("/another-certain-endpoint", anotherCertainEndpointHandler)
 
 	log.Fatal(http.ListenAndServe(":8181", nil))
 }
